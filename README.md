@@ -1,6 +1,6 @@
 # SRE Agent Skills
 
-Reusable agent workflows for incident investigation, infrastructure security reviews, and right-sizing.
+Reusable agent workflows for incident investigation, postmortems, alert audits, infrastructure security reviews, and right-sizing.
 
 Each skill is a `SKILL.md` file with instructions for gathering evidence, checking it in context, and reporting findings. The workflows use the tools available in your environment, with AWS and Kubernetes examples throughout.
 
@@ -9,6 +9,8 @@ Each skill is a `SKILL.md` file with instructions for gathering evidence, checki
 | Skill | What it does | Output |
 | --- | --- | --- |
 | [investigate](investigate/SKILL.md) | Correlates alerts, metrics, logs, deploys, and incident discussions. | UTC timeline, ranked hypotheses, and evidence gaps. |
+| [postmortem](postmortem/SKILL.md) | Rebuilds an incident's timeline from data, checks the team's narrative against it, and separates trigger from contributing factors. | Blameless draft with measured impact, key times, and action items tied to evidence. |
+| [alert-audit](alert-audit/SKILL.md) | Compares alert definitions and routing with firing and response history to find noisy, broken, silenced, and duplicate alerts, plus coverage gaps. | Per-alert verdicts with backtested changes and a list of missed detections. |
 | [harden](harden/SKILL.md) | Reviews network exposure, identity, cloud configuration, Kubernetes, images, and CI/CD. | Verified, prioritized findings with remediation guidance. |
 | [right-size](right-size/SKILL.md) | Compares historical utilization with provisioned capacity and candidate sizes. | Resource recommendations with verified specs, prices, and constraints. |
 
@@ -17,6 +19,7 @@ Each skill is a `SKILL.md` file with instructions for gathering evidence, checki
 - An agent that can load `SKILL.md` instructions and read relevant evidence through files, APIs, CLIs, or connectors. Shell access is optional.
 - Authenticated access to the systems you want to inspect: cloud CLIs, Kubernetes, observability tools, source repositories, or MCP servers.
 - For right-sizing, at least 14 days of utilization data; the default lookback is 30 days.
+- For alert audits, at least 14 days of alert firing history; the default lookback is 30 days. Paging or incident history is needed to judge whether alerts were acted on.
 
 You do not need every tool mentioned in the skills. Each workflow starts with tool and access discovery and reports missing capabilities. No credentials, scanners, or MCP servers are bundled.
 
@@ -30,7 +33,7 @@ From the root of your local checkout, link the skills into your personal skills 
 
 ```sh
 mkdir -p "$HOME/.claude/skills"
-for skill in investigate harden right-size; do
+for skill in investigate postmortem alert-audit harden right-size; do
   dest="$HOME/.claude/skills/$skill"
   if [ -e "$dest" ] || [ -L "$dest" ]; then
     printf 'Already exists: %s\n' "$dest"
@@ -50,6 +53,8 @@ Provide the target, environment, and time range when relevant. For example:
 
 ```text
 /investigate Why did checkout latency spike in staging around 14:20 UTC today?
+/postmortem Draft the review for yesterday's checkout latency incident from the #inc-checkout channel.
+/alert-audit Which of the payments team's paging alerts were noisy over the last 30 days?
 /harden Review the staging Kubernetes cluster's security configuration, passive checks only.
 /right-size Review the orders database in staging using the last 30 days of metrics.
 ```
@@ -63,7 +68,7 @@ An alert URL, incident channel, resource identifier, or repository path can prov
 3. Check candidates against context, baseline behavior, and constraints.
 4. Report evidence, recommendations, and anything that could not be verified.
 
-`investigate` and `right-size` are read-only workflows. `harden` defaults to passive review; active probes require explicit approval, and reports stay local. These are instructions for the agent, not a permissions sandbox—use the host's permissions and appropriately scoped credentials to enforce access boundaries.
+`investigate`, `postmortem`, `alert-audit`, and `right-size` are read-only workflows. `postmortem` produces a draft for human review; it does not post it, publish it, or file tickets. `harden` defaults to passive review; active probes require explicit approval, and reports stay local. These are instructions for the agent, not a permissions sandbox—use the host's permissions and appropriately scoped credentials to enforce access boundaries.
 
 The workflows recommend changes; they do not apply remediations. AWS examples and default thresholds are starting points to interpret in the context of your systems.
 
@@ -71,6 +76,8 @@ The workflows recommend changes; they do not apply remediations. AWS examples an
 
 ```text
 investigate/SKILL.md
+postmortem/SKILL.md
+alert-audit/SKILL.md
 harden/SKILL.md
 right-size/SKILL.md
 ```
